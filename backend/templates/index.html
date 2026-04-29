@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+              'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+              sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e1e1;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .success {
+            color: #27ae60;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .toggle-form {
+            text-align: center;
+            margin-top: 1rem;
+            color: #666;
+        }
+        
+        .toggle-form a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+        
+        .success-page {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        .success-page h2 {
+            color: #27ae60;
+            margin-bottom: 1rem;
+        }
+        
+        .success-page p {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .logout-btn {
+            margin-top: 2rem;
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        {% if show_success %}
+        <div class="success-page">
+            <h1>Welcome!</h1>
+            <h2>Registration Successful!</h2>
+            <p>Welcome, {{ username }}!</p>
+            <p>You have successfully registered and logged in.</p>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        {% else %}
+        <h1 id="form-title">Login</h1>
+        
+        <form id="auth-form" onsubmit="handleSubmit(event)">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    minLength="3"
+                    placeholder="Enter your username"
+                />
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    minLength="12"
+                    placeholder="Enter your password"
+                    oninput="validatePassword()"
+                />
+                <div id="password-requirements" style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                    Password must contain:
+                    <div id="req-length" style="color: #e74c3c;">- At least 12 characters</div>
+                    <div id="req-upper" style="color: #e74c3c;">- One uppercase letter</div>
+                    <div id="req-lower" style="color: #e74c3c;">- One lowercase letter</div>
+                    <div id="req-digit" style="color: #e74c3c;">- One number</div>
+                </div>
+            </div>
+            
+            <button type="submit" id="submit-btn">Login</button>
+            
+            <div id="message"></div>
+        </form>
+        
+        <div class="toggle-form">
+            <span id="toggle-text">Don't have an account? </span>
+            <a href="#" onclick="toggleForm()" id="toggle-link">Register</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let isLogin = true;
+        
+        function toggleForm() {
+            isLogin = !isLogin;
+            document.getElementById('form-title').textContent = isLogin ? 'Login' : 'Register';
+            document.getElementById('submit-btn').textContent = isLogin ? 'Login' : 'Register';
+            document.getElementById('toggle-text').textContent = isLogin ? "Don't have an account? " : "Already have an account? ";
+            document.getElementById('toggle-link').textContent = isLogin ? 'Register' : 'Login';
+            document.getElementById('message').textContent = '';
+            document.getElementById('auth-form').reset();
+        }
+        
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            messageDiv.textContent = '';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                const endpoint = isLogin ? '/login' : '/register';
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    // If registration successful, page will reload with success message
+                    if (!isLogin) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        // For login, check if redirected to success page
+                        if (text.includes('Registration Successful') || text.includes('Welcome')) {
+                            window.location.reload();
+                        } else {
+                            messageDiv.textContent = 'Login successful';
+                            messageDiv.className = 'success';
+                        }
+                    }
+                } else {
+                    // Extract error message from HTML response
+                    const errorMatch = text.match('error[^>]*>([^<]+)');
+                    const errorMessage = errorMatch ? errorMatch[1] : 'An error occurred';
+                    messageDiv.textContent = errorMessage;
+                    messageDiv.className = 'error';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Connection error. Please try again.';
+                messageDiv.className = 'error';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = isLogin ? 'Login' : 'Register';
+            }
+        }
+        
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const reqLength = document.getElementById('req-length');
+            const reqUpper = document.getElementById('req-upper');
+            const reqLower = document.getElementById('req-lower');
+            const reqDigit = document.getElementById('req-digit');
+            
+            // Check length
+            if (password.length >= 12) {
+                reqLength.style.color = '#27ae60';
+            } else {
+                reqLength.style.color = '#e74c3c';
+            }
+            
+            // Check uppercase
+            if (/[A-Z]/.test(password)) {
+                reqUpper.style.color = '#27ae60';
+            } else {
+                reqUpper.style.color = '#e74c3c';
+            }
+            
+            // Check lowercase
+            if (/[a-z]/.test(password)) {
+                reqLower.style.color = '#27ae60';
+            } else {
+                reqLower.style.color = '#e74c3c';
+            }
+            
+            // Check digit
+            if (/\d/.test(password)) {
+                reqDigit.style.color = '#27ae60';
+            } else {
+                reqDigit.style.color = '#e74c3c';
+            }
+        }
+        
+        function logout() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
