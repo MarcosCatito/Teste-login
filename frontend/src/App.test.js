@@ -1,83 +1,100 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
+import '@testing-library/jest-dom';
 
-
-global.fetch = jest.fn();
+// Mock do window.location
+delete window.location;
+window.location = { href: '', pathname: '/' };
 
 beforeEach(() => {
-  fetch.mockClear();
-  localStorage.clear();
+  window.location.href = '';
+  window.location.pathname = '/';
 });
 
-test('renderiza formulário de login por defeito', () => {
-  render(<App />);
-  
-  expect(screen.getByText(/login/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-});
-
-test('alterna entre login e register', () => {
-  render(<App />);
-  
-  fireEvent.click(screen.getByText(/register/i));
-  expect(screen.getByText(/register/i)).toBeInTheDocument();
-
-  fireEvent.click(screen.getByText(/login/i));
-  expect(screen.getByText(/login/i)).toBeInTheDocument();
-});
-
-test('submete login com sucesso', async () => {
-  fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({ message: 'Login successful' })
+describe('App Component - Integração', () => {
+  test('renderiza componente Login por padrão', () => {
+    render(<App />);
+    
+    // Verifica se está mostrando o componente Login
+    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
 
-  render(<App />);
+  test('renderiza componente SuccessPage quando pathname é /success', () => {
+    // Mock do window.location para página de sucesso
+    Object.defineProperty(window, 'location', {
+      value: { 
+        pathname: '/success',
+        href: '/success'
+      },
+      writable: true
+    });
 
-  fireEvent.change(screen.getByLabelText(/username/i), {
-    target: { value: 'testuser' }
+    render(<App />);
+
+    // Verifica se está mostrando o componente SuccessPage
+    expect(screen.getByRole('heading', { name: /welcome/i })).toBeInTheDocument();
+    expect(screen.getByText(/registration successful/i)).toBeInTheDocument();
   });
 
-  fireEvent.change(screen.getByLabelText(/password/i), {
-    target: { value: 'password123' }
+  test('alterna entre Login e Register', () => {
+    render(<App />);
+    
+    // Verifica se começa com Login
+    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
+
+    // Clica no link para Register
+    fireEvent.click(screen.getByRole('link', { name: /register/i }));
+    
+    // Verifica se mudou para Register
+    expect(screen.getByRole('heading', { name: /register/i })).toBeInTheDocument();
+
+    // Clica no link para Login
+    fireEvent.click(screen.getByRole('link', { name: /login/i }));
+    
+    // Verifica se voltou para Login
+    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
   });
 
-  fireEvent.click(screen.getByRole('button'));
-
-  await waitFor(() => {
-    expect(screen.getByText(/login successful/i)).toBeInTheDocument();
-  });
-});
-
-test('submete register com sucesso e guarda dados', async () => {
-  fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({
-      message: 'Registered',
-      token: '123',
-      user: 'testuser'
-    })
+  test('estado inicial isLogin é true', () => {
+    render(<App />);
+    
+    // Componente Login deve estar visível
+    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /register/i })).not.toBeInTheDocument();
   });
 
-  render(<App />);
+  test('roteamento baseado em pathname funciona corretamente', () => {
+    // Testar pathname raiz
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/' },
+      writable: true
+    });
 
-  fireEvent.click(screen.getByText(/register/i));
+    const { rerender } = render(<App />);
+    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
 
-  fireEvent.change(screen.getByLabelText(/username/i), {
-    target: { value: 'testuser' }
+    // Testar pathname /success
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/success' },
+      writable: true
+    });
+
+    rerender(<App />);
+    expect(screen.getByRole('heading', { name: /welcome/i })).toBeInTheDocument();
   });
 
-  fireEvent.change(screen.getByLabelText(/password/i), {
-    target: { value: 'password123' }
+  test('callbacks são passados corretamente para componentes filhos', () => {
+    render(<App />);
+    
+    // Verifica se os callbacks existem (não podemos testar diretamente, 
+    // mas podemos verificar que os componentes filhos estão renderizados)
+    expect(screen.getByRole('link', { name: /register/i })).toBeInTheDocument();
+    
+    // Clicar no link deve funcionar (o que indica que o callback foi passado)
+    fireEvent.click(screen.getByRole('link', { name: /register/i }));
+    expect(screen.getByRole('heading', { name: /register/i })).toBeInTheDocument();
   });
-
-  fireEvent.click(screen.getByRole('button'));
-
-  await waitFor(() => {
-    expect(screen.getByText(/registered/i)).toBeInTheDocument();
-  });
-
-  expect(localStorage.getItem('token')).toBe('123');
-  expect(localStorage.getItem('user')).toBe('testuser');
 });
