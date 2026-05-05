@@ -1,6 +1,8 @@
 # Sistema de login simples e registo
 
-Este exercício consistio numa aplicação web simples de login e registo, com backend em Flask e frontend em React. Pode conter alguns erros e até algumas funções podem não funcionar correctamente. 
+Este Projeto A consistio numa aplicação web simples de login e registo, com backend em Flask e frontend em React. Pode conter alguns erros e até algumas funções podem não funcionar correctamente. 
+
+Já foram implementadas algumas alterações ao código original, como por exemplo a adição de um sistema de segurança mais robusto, com proteção contra ataques comuns, validação de inputs, rate limiting e brute force protection.
 
 # Para a sua excução
 

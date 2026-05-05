@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Backend Flask Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: login-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=your-secret-key-change-in-production
+      - JWT_SECRET_KEY=your-jwt-secret-key-change-in-production
+      - DATABASE_URL=sqlite:///app.db
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    networks:
+      - login-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: login-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - login-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database (Optional - for production use PostgreSQL/MySQL)
+  # Uncomment for production database
+  # database:
+  #   image: postgres:13-alpine
+  #   container_name: login-db
+  #   environment:
+  #     POSTGRES_DB: login_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: your-db-password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - login-network
+  #   restart: unless-stopped
+
+volumes:
+  backend_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+
+networks:
+  login-network:
+    driver: bridge

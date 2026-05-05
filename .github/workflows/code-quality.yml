@@ -1,0 +1,152 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install black isort flake8 mypy pytest pytest-cov
+
+    - name: Check code formatting with black
+      run: |
+        cd backend
+        black --check --diff .
+
+    - name: Check import sorting with isort
+      run: |
+        cd backend
+        isort --check-only --diff .
+
+    - name: Lint with flake8
+      run: |
+        cd backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Type checking with mypy
+      run: |
+        cd backend
+        mypy . --ignore-missing-imports --no-strict-optional
+
+    - name: Calculate code complexity
+      run: |
+        cd backend
+        pip install radon
+        radon cc . --min B
+        radon mi . --min B
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run ESLint
+      run: |
+        cd frontend
+        npm install eslint
+        npx eslint . --ext .js,.jsx --format json --output-file eslint-report.json || true
+
+    - name: Run Prettier check
+      run: |
+        cd frontend
+        npm install prettier
+        npx prettier --check . --write prettier-report.txt || true
+
+    - name: Check bundle size
+      run: |
+        cd frontend
+        npm install webpack-bundle-analyzer
+        npm run build
+        npx webpack-bundle-analyzer build/static/js/*.js --mode=json --report bundle-report.json || true
+
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-quality-reports
+        path: |
+          frontend/eslint-report.json
+          frontend/prettier-report.txt
+          frontend/bundle-report.json
+
+  documentation-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install mkdocs mkdocs-material
+
+    - name: Check documentation build
+      run: |
+        mkdocs build --strict || true
+
+    - name: Check README files
+      run: |
+        find . -name "README.md" -exec echo "Checking {}" \; -exec markdownlint {} \; || true
+
+  performance-benchmark:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build application
+      run: |
+        docker-compose build
+
+    - name: Run performance tests
+      run: |
+        docker-compose up -d
+        sleep 30
+        # Run basic performance tests
+        for i in {1..10}; do
+          curl -w "@curl-format.txt" -o /dev/null -s "http://localhost:5000/" || true
+          curl -w "@curl-format.txt" -o /dev/null -s "http://localhost:80/" || true
+        done
+        docker-compose down
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: curl-results.txt
