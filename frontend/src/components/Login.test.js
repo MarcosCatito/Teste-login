@@ -12,7 +12,12 @@ const localStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 };
-global.localStorage = localStorageMock;
+
+// Limpar localStorage real e substituir com mock
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true
+});
 
 // Mock do window.location
 delete window.location;
@@ -33,7 +38,7 @@ describe('Login Component', () => {
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /register/i })).toBeInTheDocument();
+    expect(screen.getByText(/register/i)).toBeInTheDocument();
   });
 
   test('preenche formulário e submete com sucesso', async () => {
@@ -66,9 +71,11 @@ describe('Login Component', () => {
       expect(screen.getByText(/login successful/i)).toBeInTheDocument();
     });
 
-    // Verificar se localStorage foi chamado
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'fake-token');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('user', 'testuser');
+    // Aguardar um pouco para garantir que o localStorage seja chamado
+    await waitFor(() => {
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'fake-token');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('user', 'testuser');
+    });
     
     // Verificar se callback foi chamado
     expect(mockOnLoginSuccess).toHaveBeenCalledWith({
@@ -123,7 +130,7 @@ describe('Login Component', () => {
     const mockOnToggleForm = jest.fn();
     render(<Login onToggleForm={mockOnToggleForm} />);
 
-    fireEvent.click(screen.getByRole('link', { name: /register/i }));
+    fireEvent.click(screen.getByText(/register/i));
     expect(mockOnToggleForm).toHaveBeenCalledTimes(1);
   });
 

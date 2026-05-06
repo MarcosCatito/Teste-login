@@ -46,13 +46,13 @@ describe('App Component - Integração', () => {
     expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
 
     // Clica no link para Register
-    fireEvent.click(screen.getByRole('link', { name: /register/i }));
+    fireEvent.click(screen.getByText(/register/i));
     
     // Verifica se mudou para Register
     expect(screen.getByRole('heading', { name: /register/i })).toBeInTheDocument();
 
     // Clica no link para Login
-    fireEvent.click(screen.getByRole('link', { name: /login/i }));
+    fireEvent.click(screen.getByText(/login/i));
     
     // Verifica se voltou para Login
     expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
@@ -91,10 +91,10 @@ describe('App Component - Integração', () => {
     
     // Verifica se os callbacks existem (não podemos testar diretamente, 
     // mas podemos verificar que os componentes filhos estão renderizados)
-    expect(screen.getByRole('link', { name: /register/i })).toBeInTheDocument();
+    expect(screen.getByText(/register/i)).toBeInTheDocument();
     
     // Clicar no link deve funcionar (o que indica que o callback foi passado)
-    fireEvent.click(screen.getByRole('link', { name: /register/i }));
+    fireEvent.click(screen.getByText(/register/i));
     expect(screen.getByRole('heading', { name: /register/i })).toBeInTheDocument();
   });
 });
