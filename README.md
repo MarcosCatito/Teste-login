@@ -9,7 +9,7 @@ Já foram implementadas algumas alterações ao código original, como por exemp
 É necessário ter o Python e o Node.js instalados no computador.
 É executado por meio do app.py.
 
-# Alterações novas ao ficheiro 
+# Alterações antigas ao ficheiro 
 
 
 Este projeto é um sistema completo de login e registro com as seguintes características:
@@ -57,3 +57,82 @@ Teste-login/
 ```
 
 ---
+
+# Alterações mais recentes
+
+Agora foi implementado o docker para deploys e foi adicionado o github actions para CI/CD, Tendo agora um pipeline de CI/CD completo. No github actions temos os seguintes workflows:
+
+- backend-ci.yml - Testes e validação do backend
+- frontend-ci.yml - Testes e validação do frontend
+- code-quality.yml - Verificação de qualidade do código
+- security.yml - Verificação de segurança
+- integration-tests.yml - Testes de integração
+- deploy.yml - Deploy automático para produção
+
+---
+
+# Como usar
+
+## Executar localmente
+
+### Backend
+```bash
+cd backend
+python app.py
+```
+
+### Frontend
+```bash
+cd frontend
+npm start
+```
+
+## Executar com Docker
+
+```bash
+docker-compose up --build
+```
+
+## Executar testes
+
+### Backend
+```bash
+cd backend
+python -m pytest
+```
+
+### Frontend
+```bash
+cd frontend
+npm test
+```
+
+## Executar validações de segurança
+
+```bash
+cd backend
+python test_security.py
+```
+
+## Visualizar banco de dados
+
+```bash
+cd backend
+python view_db.py
+```
+
+## Migrações
+
+```bash
+cd backend
+python migrate.py
+```
+
+## Documentação completa
+
+Para mais detalhes, consulte o arquivo [DOCUMENTACAO_PROJETO.md](DOCUMENTACAO_PROJETO.md).
+
+---
+
+
+
