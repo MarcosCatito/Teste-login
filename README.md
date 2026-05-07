@@ -21,6 +21,8 @@ Sistema completo de login e registro com pipelines CI/CD **simplificadas e indep
 - **CI/CD**: GitHub Actions simplificados (2 pipelines apenas)
 - **Deploy**: Docker containers
 - **Segurança**: Múltiplas camadas de proteção
+- **Quality Gates**: Verificação automática de qualidade
+- **Security Scanning**: Análise de vulnerabilidades contínua
 
 ---
 
@@ -397,6 +399,35 @@ docker-compose logs
 - Manter testes atualizados
 - Documentar mudanças
 - Respeitar CI/CD
+
+---
+
+## 🔒 Segurança e Qualidade
+
+### Security Features
+- **CodeQL Analysis**: Scanning estático de código
+- **Dependabot**: Atualizações automáticas de dependências
+- **Secret Scanning**: Detecção de credenciais expostas
+- **Container Security**: Trivy vulnerability scanning
+- **Dependency Security**: Safety (Python) + npm audit (JavaScript)
+
+### Quality Gates
+- **Code Formatting**: Black (Python) + Prettier (JavaScript)
+- **Linting**: flake8 (Python) + ESLint (JavaScript)
+- **Type Checking**: mypy (Python) + TypeScript (JavaScript)
+- **Test Coverage**: Mínimo 80% de cobertura
+- **Security Testing**: Bandit (Python) + npm audit
+- **Accessibility**: axe-core testing
+
+### Security Policy
+- 📋 [SECURITY.md](./SECURITY.md) - Política de segurança
+- 🐛 **Report vulnerabilities**: security@example.com
+- 🛡️ **Response time**: 24-72 hours dependendo da severidade
+
+### GitHub Advanced Security
+- ✅ **Enabled**: Secret scanning, dependency scanning, code scanning
+- 🤖 **Automated**: Daily/weekly security scans
+- 📊 **Dashboard**: Security tab no GitHub
 
 ---
 

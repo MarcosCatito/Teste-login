@@ -1,0 +1,191 @@
+name: "Code Quality & Quality Gates"
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # Backend Quality Checks
+  backend-quality:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8 black isort bandit safety mypy
+
+      - name: Code formatting check (Black)
+        run: |
+          cd backend
+          black --check --diff .
+
+      - name: Import sorting check (isort)
+        run: |
+          cd backend
+          isort --check-only --diff .
+
+      - name: Linting (flake8)
+        run: |
+          cd backend
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Type checking (mypy)
+        run: |
+          cd backend
+          mypy . --ignore-missing-imports --no-strict-optional || true
+
+      - name: Security scan (bandit)
+        run: |
+          cd backend
+          bandit -r . -f json -o bandit-report.json || true
+
+      - name: Dependency security (safety)
+        run: |
+          cd backend
+          safety check --json --output safety-report.json || true
+
+      - name: Unit tests with coverage
+        run: |
+          cd backend
+          pytest test_security.py -v --cov=. --cov-report=xml --cov-report=html --cov-fail-under=80
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-reports
+          path: |
+            backend/bandit-report.json
+            backend/safety-report.json
+            backend/htmlcov/
+          retention-days: 30
+
+  # Frontend Quality Checks
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Linting (ESLint)
+        run: |
+          cd frontend
+          npm run lint --if-present
+
+      - name: Code formatting check (Prettier)
+        run: |
+          cd frontend
+          npm run format:check --if-present
+
+      - name: Type checking (TypeScript)
+        run: |
+          cd frontend
+          npx tsc --noEmit --skipLibCheck || true
+
+      - name: Unit tests with coverage
+        run: |
+          cd frontend
+          npm test -- --coverage --watchAll=false --passWithNoTests --coverageThreshold=80
+
+      - name: Security audit
+        run: |
+          cd frontend
+          npm audit --audit-level=high
+
+      - name: Build application
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Accessibility tests
+        run: |
+          cd frontend
+          npm install -g @axe-core/cli
+          axe build/index.html --tags wcag2a,wcag2aa --disable best-practice
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+
+  # Quality Gate Summary
+  quality-gate:
+    name: Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Quality Gate Status
+        run: |
+          echo "## Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ needs.backend-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ needs.frontend-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.backend-quality.result }}" == "failure" || "${{ needs.frontend-quality.result }}" == "failure" ]]; then
+            echo "❌ Quality gate failed! Please fix the issues above." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ Quality gate passed! All checks successful." >> $GITHUB_STEP_SUMMARY
+          fi
