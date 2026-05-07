@@ -55,7 +55,7 @@ jobs:
           axe build/index.html --tags wcag2a,wcag2aa
 
       - name: 📈 Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: frontend/coverage/lcov.info
           flags: frontend

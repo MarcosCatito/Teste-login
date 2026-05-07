@@ -71,7 +71,7 @@ jobs:
           pytest test_security.py -v --cov=. --cov-report=xml --cov-report=html --cov-fail-under=80
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: ./backend/coverage.xml
           flags: backend
@@ -149,7 +149,7 @@ jobs:
           axe build/index.html --tags wcag2a,wcag2aa --disable best-practice
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: ./frontend/coverage/lcov.info
           flags: frontend
