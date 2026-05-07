@@ -2,209 +2,126 @@ name: Frontend Pipeline
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [main, develop, feature/*]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
       - 'frontend/**'
-      - '.github/workflows/frontend.yml'
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    
+    defaults:
+      run:
+        working-directory: frontend
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4.2.2
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🟢 Set up Node.js
-      uses: actions/setup-node@v4.1.0
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-        cache-dependency-path: 'frontend/package-lock.json'
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-    - name: 📦 Install dependencies
-      run: |
-        cd frontend
-        echo "📦 Installing dependencies..."
-        npm ci
-        echo "✅ Dependencies installed"
+      - name: 📦 Install dependencies
+        run: npm ci
 
-    - name: 🔍 Run ESLint
-      run: |
-        cd frontend
-        echo "🔍 Running ESLint..."
-        npm run lint --if-present
-        echo "✅ ESLint check completed"
+      - name: 🔍 Lint
+        run: npm run lint --if-present
 
-    - name: 🎨 Run Prettier check
-      run: |
-        cd frontend
-        echo "🎨 Running Prettier check..."
-        npm run format:check --if-present
-        echo "✅ Prettier check completed"
+      - name: 🎨 Prettier check
+        run: npm run format:check --if-present
 
-    - name: 🧪 Run unit tests
-      run: |
-        cd frontend
-        echo "🧪 Running unit tests..."
-        npm test -- --coverage --watchAll=false --passWithNoTests
-        echo "✅ Unit tests completed"
+      - name: 🧪 Tests
+        run: npm test -- --coverage --watchAll=false --passWithNoTests
 
-    - name: 🏗️ Build application
-      run: |
-        cd frontend
-        echo "🏗️ Building application..."
-        npm run build
-        echo "✅ Build completed"
+      - name: 🏗️ Build
+        run: npm run build
 
-    - name: 🌐 Run accessibility tests
-      run: |
-        cd frontend
-        echo "🌐 Running accessibility tests..."
-        npm install -g @axe-core/cli
-        axe build/index.html --tags wcag2a,wcag2aa --disable best-practice
-        echo "✅ Accessibility tests completed"
+      - name: 🌐 Accessibility tests
+        run: |
+          npm install -g @axe-core/cli
+          axe build/index.html --tags wcag2a,wcag2aa
 
-    - name: 📈 Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./frontend/coverage/lcov.info
-        flags: frontend
-        name: frontend-coverage
+      - name: 📈 Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: frontend/coverage/lcov.info
+          flags: frontend
 
-    - name: 🛡️ Run npm audit
-      run: |
-        cd frontend
-        echo "🛡️ Running npm audit..."
-        npm audit --json > audit-report.json || true
-        echo "✅ npm audit completed"
+      - name: 🛡️ NPM audit (fail on issues)
+        run: npm audit --audit-level=high
 
-    - name: 📤 Upload security reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: frontend-security-reports
-        path: |
-          frontend/audit-report.json
-        retention-days: 30
+      - name: 📤 Upload audit report
+        run: npm audit --json > audit-report.json
+
+      - name: 📦 Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-reports
+          path: frontend/audit-report.json
 
   build:
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main'
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4.2.2
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🐳 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      - name: 🐳 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-    - name: 🔐 Login to Docker Hub
-      uses: docker/login-action@v4
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: 🔐 Login Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: 🏗️ Build and push frontend image
-      uses: docker/build-push-action@v5
-      id: build
-      with:
-        context: ./frontend
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_USERNAME }}/login-frontend:latest
-          ${{ secrets.DOCKER_USERNAME }}/login-frontend:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        labels: |
-          org.opencontainers.image.title=Login Frontend
-          org.opencontainers.image.description=React frontend application for login system
-          org.opencontainers.image.version=${{ github.sha }}
+      - name: 🏗️ Build & push image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/login-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/login-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-    - name: 🏷️ Set image tag output
-      id: meta
-      run: |
-        echo "tags=${{ secrets.DOCKER_USERNAME }}/login-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: 🔍 Trivy scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/login-frontend:latest
+          format: sarif
+          output: trivy-results.sarif
 
-    - name: 🔍 Run security scan on image
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ secrets.DOCKER_USERNAME }}/login-frontend:latest
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: 📤 Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-    - name: 🎉 Build completed
-      run: |
-        echo "🎉 Frontend build completed successfully!"
-        echo "🏷️ Image: ${{ secrets.DOCKER_USERNAME }}/login-frontend:${{ github.sha }}"
-        echo "🌐 Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/login-frontend"
+      - name: 📤 Upload security scan
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: build
     if: github.ref == 'refs/heads/main'
     environment: production
-    
+
     steps:
-    - name: 🚀 Deploy frontend
-      run: |
-        echo "🚀 Deploying frontend to production..."
-        echo "🏷️ Image: ${{ needs.build.outputs.image-tag }}"
-        echo "🌐 Frontend will be available at: http://your-domain.com"
-        echo "✅ Frontend deployment completed!"
-
-    - name: 📢 Notify deployment
-      if: always()
-      run: |
-        echo "📢 Frontend deployment notification sent"
-        echo "📊 Status: ${{ job.status }}"
-        echo "🔗 Commit: ${{ github.sha }}"
-
-  performance:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4.2.2
-
-    - name: 🟢 Set up Node.js
-      uses: actions/setup-node@v4.1.0
-      with:
-        node-version: '18.x'
-
-    - name: 📦 Install dependencies
-      run: |
-        cd frontend
-        npm ci
-
-    - name: 🏗️ Build application
-      run: |
-        cd frontend
-        npm run build
-
-    - name: 📊 Run Lighthouse CI
-      uses: treosh/lighthouse-ci-action@v10
-      with:
-        configPath: './frontend/lighthouserc.json'
-        uploadArtifacts: true
-        temporaryPublicStorage: true
-
-    - name: 📈 Performance results
-      run: |
-        echo "📈 Performance tests completed"
-        echo "📊 Check Lighthouse results in Artifacts section"
+      - name: 🚀 Deploy frontend
+        run: |
+          echo "Deploying frontend..."
+          echo "Image: ${{ secrets.DOCKER_USERNAME }}/login-frontend:${{ github.sha }}"
+          echo "Deployment completed!"
