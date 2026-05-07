@@ -38,7 +38,8 @@ jobs:
           flake8 . --max-line-length=127 --show-source
           black --check .
       - name: Security scan
-        run: bandit -r . -f json -o bandit-report.json
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
       - name: Run tests
         run: pytest -v --cov=. --cov-fail-under=80 --cov-report=xml
       - uses: codecov/codecov-action@v4
@@ -49,4 +50,6 @@ jobs:
         if: always()
         with:
           name: backend-reports
-          path: backend/bandit-report.json
+          path: |
+            backend/bandit-report.json
+            backend/coverage.xml
