@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
-import hashlib
 import jwt
 import datetime
 from functools import wraps
 from database import db
-from security import security, secure_input, secure_database_query
+from security import security, secure_input
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
@@ -61,7 +60,7 @@ def token_required(f):
             return jsonify({'message': 'Token is missing'}), 401
         try:
             jwt.decode(token.split()[1], app.config['SECRET_KEY'], algorithms=['HS256'])
-        except:
+        except Exception as e:
             return jsonify({'message': 'Token is invalid'}), 401
         return f(*args, **kwargs)
     return decorated
