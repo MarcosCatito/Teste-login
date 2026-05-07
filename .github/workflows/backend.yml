@@ -160,7 +160,7 @@ jobs:
       run: |
         echo "🎉 Backend build completed successfully!"
         echo "🏷️ Image: ${{ secrets.DOCKER_USERNAME }}/login-backend:${{ github.sha }}"
-        echo "🔗 Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/login-backend",
+        echo "🔗 Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/login-backend"
         
   deploy:
     runs-on: ubuntu-latest
