@@ -1,0 +1,39 @@
+name: Backend Basic Tests
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check files exist
+        run: |
+          echo "Files in backend:"
+          ls -la
+          echo "Requirements.txt:"
+          cat requirements.txt || echo "No requirements.txt"
+      - name: Install basic dependencies
+        run: pip install flask flask-cors
+      - name: Test Python syntax
+        run: python -c "import app; print('App imported successfully')" || echo "Import failed"
+      - name: Simple test
+        run: |
+          echo "Running simple validation..."
+          python -c "import sys; exec('try:\\n    from app import app\\n    print(\"SUCCESS: Flask app imports correctly\")\\nexcept Exception as e:\\n    print(f\"ERROR: {e}\")\\n    sys.exit(1)')"
