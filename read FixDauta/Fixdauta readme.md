@@ -16,7 +16,7 @@ Frontend → Backend → Banco de Dados
               ↘
                IA/ML
 
-
+![alt text](png/Diagrama.png)
 
 ### Objetivo da arquitetura
 
